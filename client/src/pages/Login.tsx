@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,11 +15,21 @@ const loginSchema = zod.object({
 type LoginFormValues = zod.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -51,9 +61,10 @@ const Login: React.FC = () => {
       } else {
         navigate('/dashboard', { replace: true });
       }
-    } catch (err) {
-      console.error('Login error', err);
-    } finally {
+    } catch {
+  // AuthContext already shows the toast.
+  // Stay on the login page.
+}finally {
       setIsSubmitting(false);
     }
   };

@@ -101,22 +101,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         }`}
       >
         {/* Brand Logo Header */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-650 text-white font-extrabold select-none shadow-md shadow-brand-500/20">
-              LF
-            </div>
-            <span className="text-lg font-bold text-slate-800 tracking-tight font-sans">
-              LeaveFlow <span className="text-brand-650">HRMS</span>
-            </span>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-650 lg:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </div>
+        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+  {/* Branding & Logo Group */}
+  <div className="flex items-center gap-3">
+    {/* Logo Icon Box */}
+    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-black select-none shadow-lg shadow-indigo-600/20 text-sm tracking-wider">
+      LF
+    </div>
+    {/* App Title Text */}
+    <span className="text-xl font-extrabold text-slate-900 tracking-tight font-sans">
+      LeaveFlow <span className="text-indigo-600 font-semibold text-lg">HRMS</span>
+    </span>
+  </div>
+
+  {/* Mobile Menu Button */}
+  <button
+    onClick={onClose}
+    className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors duration-200 lg:hidden focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+    aria-label="Close menu"
+  >
+    <Menu className="h-5 w-5" />
+  </button>
+</div>
 
         {/* Navigation Links */}
         <nav className="flex-1 space-y-2 px-4 py-6 overflow-y-auto">

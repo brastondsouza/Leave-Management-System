@@ -18,6 +18,41 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+interface NormalizedQuota {
+  total: number;
+  remaining: number;
+  used?: number;
+}
+
+const getQuota = (balances: any, type: 'casual' | 'sick' | 'earned'): NormalizedQuota => {
+  const defaultAllotments = { casual: 10, sick: 8, earned: 15 };
+  const total = defaultAllotments[type];
+  
+  if (!balances) {
+    return { total, remaining: total, used: 0 };
+  }
+
+  const value = balances[type];
+
+  // If it's already an object
+  if (value && typeof value === 'object') {
+    const r = typeof value.remaining === 'number' ? value.remaining : 0;
+    const t = typeof value.total === 'number' ? value.total : total;
+    const u = typeof value.used === 'number' ? value.used : Math.max(0, t - r);
+    return { total: t, remaining: r, used: u };
+  }
+
+  // If it's a number (representing remaining days)
+  if (typeof value === 'number') {
+    const remaining = value;
+    const used = Math.max(0, total - remaining);
+    return { total, remaining, used };
+  }
+
+  // Graceful fallback
+  return { total, remaining: total, used: 0 };
+};
+
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
   const [balances, setBalances] = useState<LeaveBalancesResponse | null>(null);
@@ -134,35 +169,43 @@ const EmployeeDashboard: React.FC = () => {
           {isLoadingBalances ? (
             <Skeleton type="card" count={3} />
           ) : balances ? (
-            <>
-              {/* Casual Leave -> Green */}
-              <LeaveBalanceCard
-                leaveType="Casual Leave"
-                total={balances.casual.total}
-                used={balances.casual.used}
-                remaining={balances.casual.remaining}
-                colorTheme="earned"
-                className="w-full max-w-sm hover:border-emerald-250 transition-all border-slate-200"
-              />
-              {/* Sick Leave -> Orange */}
-              <LeaveBalanceCard
-                leaveType="Sick Leave"
-                total={balances.sick.total}
-                used={balances.sick.used}
-                remaining={balances.sick.remaining}
-                colorTheme="sick"
-                className="w-full max-w-sm hover:border-amber-250 transition-all border-slate-200"
-              />
-              {/* Earned Leave -> Blue */}
-              <LeaveBalanceCard
-                leaveType="Earned Leave"
-                total={balances.earned.total}
-                used={balances.earned.used}
-                remaining={balances.earned.remaining}
-                colorTheme="brand"
-                className="w-full max-w-sm hover:border-brand-200 transition-all border-slate-200"
-              />
-            </>
+            (() => {
+              const casual = getQuota(balances, 'casual');
+              const sick = getQuota(balances, 'sick');
+              const earned = getQuota(balances, 'earned');
+              
+              return (
+                <>
+                  {/* Casual Leave -> Green */}
+                  <LeaveBalanceCard
+                    leaveType="Casual Leave"
+                    total={casual.total}
+                    used={casual.used}
+                    remaining={casual.remaining}
+                    colorTheme="earned"
+                    className="w-full max-w-sm hover:border-emerald-250 transition-all border-slate-200"
+                  />
+                  {/* Sick Leave -> Orange */}
+                  <LeaveBalanceCard
+                    leaveType="Sick Leave"
+                    total={sick.total}
+                    used={sick.used}
+                    remaining={sick.remaining}
+                    colorTheme="sick"
+                    className="w-full max-w-sm hover:border-amber-250 transition-all border-slate-200"
+                  />
+                  {/* Earned Leave -> Blue */}
+                  <LeaveBalanceCard
+                    leaveType="Earned Leave"
+                    total={earned.total}
+                    used={earned.used}
+                    remaining={earned.remaining}
+                    colorTheme="brand"
+                    className="w-full max-w-sm hover:border-brand-200 transition-all border-slate-200"
+                  />
+                </>
+              );
+            })()
           ) : (
             <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-400 font-medium">
               No leave balances found.

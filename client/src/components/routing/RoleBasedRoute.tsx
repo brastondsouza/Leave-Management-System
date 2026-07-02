@@ -32,8 +32,8 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({ children, allowedRoles 
   }
 
   if (!allowedRoles.includes(user.role)) {
-    // Redirect to default dashboard
-    return <Navigate to="/dashboard" replace />;
+    const dest = user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
+    return <Navigate to={dest} replace />;
   }
 
   return <>{children}</>;

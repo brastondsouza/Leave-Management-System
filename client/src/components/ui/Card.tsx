@@ -65,18 +65,18 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 
 interface LeaveBalanceCardProps {
   leaveType: string;
-  total: number;
-  used: number;
-  remaining: number;
+  total?: number;
+  used?: number;
+  remaining?: number;
   colorTheme?: 'brand' | 'sick' | 'earned';
   className?: string;
 }
 
 export const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({
   leaveType,
-  total,
+  total = 0,
   used,
-  remaining,
+  remaining = 0,
   colorTheme = 'brand',
   className = '',
 }) => {
@@ -105,7 +105,7 @@ export const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({
   };
 
   const currentTheme = themes[colorTheme] || themes.brand;
-  const usagePercentage = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+  const usagePercentage = total > 0 && used !== undefined ? Math.min((used / total) * 100, 100) : 0;
 
   return (
     <div className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs transition-all hover:shadow-xs ${currentTheme.border} ${className}`}>
@@ -125,18 +125,20 @@ export const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({
       </div>
 
       {/* Usage Progress Bar */}
-      <div className="mt-6">
-        <div className="flex justify-between text-xs font-semibold text-slate-500 mb-2">
-          <span>Used: {used} days</span>
-          <span>{Math.round(usagePercentage)}% consumed</span>
+      {used !== undefined && (
+        <div className="mt-6">
+          <div className="flex justify-between text-xs font-semibold text-slate-500 mb-2">
+            <span>Used: {used} days</span>
+            <span>{Math.round(usagePercentage)}% consumed</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${currentTheme.bar}`}
+              style={{ width: `${usagePercentage}%` }}
+            />
+          </div>
         </div>
-        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${currentTheme.bar}`}
-            style={{ width: `${usagePercentage}%` }}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 };

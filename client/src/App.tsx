@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Route Guards
 import ProtectedRoute from './components/routing/ProtectedRoute';
@@ -23,6 +23,14 @@ import ManageEmployees from './pages/ManageEmployees';
 import CalendarView from './pages/CalendarView';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
+
+const RootRedirect: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+};
 
 const App: React.FC = () => {
   return (
@@ -64,15 +72,50 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           >
-            {/* Root redirects to dashboard */}
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            {/* Root redirects to correct dashboard depending on role */}
+            <Route index element={<RootRedirect />} />
             
             {/* Employee Pages */}
-            <Route path="dashboard" element={<EmployeeDashboard />} />
-            <Route path="apply-leave" element={<ApplyLeave />} />
-            <Route path="leave-history" element={<LeaveHistory />} />
-            <Route path="leave-balance" element={<LeaveBalance />} />
-            <Route path="calendar" element={<EmployeeCalendar />} />
+            <Route
+              path="dashboard"
+              element={
+                <RoleBasedRoute allowedRoles={['employee']}>
+                  <EmployeeDashboard />
+                </RoleBasedRoute>
+              }
+            />
+            <Route
+              path="apply-leave"
+              element={
+                <RoleBasedRoute allowedRoles={['employee']}>
+                  <ApplyLeave />
+                </RoleBasedRoute>
+              }
+            />
+            <Route
+              path="leave-history"
+              element={
+                <RoleBasedRoute allowedRoles={['employee']}>
+                  <LeaveHistory />
+                </RoleBasedRoute>
+              }
+            />
+            <Route
+              path="leave-balance"
+              element={
+                <RoleBasedRoute allowedRoles={['employee']}>
+                  <LeaveBalance />
+                </RoleBasedRoute>
+              }
+            />
+            <Route
+              path="calendar"
+              element={
+                <RoleBasedRoute allowedRoles={['employee']}>
+                  <EmployeeCalendar />
+                </RoleBasedRoute>
+              }
+            />
             <Route path="profile" element={<Settings />} />
 
             {/* Admin/Manager Pages */}

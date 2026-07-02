@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -23,18 +24,35 @@ api.interceptors.request.use(
   }
 );
 
-// Response Interceptor: Catch 401 errors to logout the user
+// Response Interceptor: Manage API error toasts and session expirations
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('leaveflow_token');
-      localStorage.removeItem('leaveflow_user');
-      // Redirect to login if window object is available
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || "";
+    const isLoginRequest = requestUrl.includes('/auth/login') || requestUrl.includes('login');
+
+    if (status === 401) {
+      if (!isLoginRequest) {
+        const token = localStorage.getItem('leaveflow_token');
+        if (token) {
+          localStorage.removeItem('leaveflow_token');
+          localStorage.removeItem('leaveflow_user');
+          toast.error('Session expired. Please log in again.');
+          // Redirect to login safely
+          setTimeout(() => {
+            window.location.replace('/login');
+          }, 200);
+        }
       }
+    } else if (status === 403) {
+      toast.error('Access Denied.');
+    } else if (status === 404) {
+      toast.error('Requested resource not found. (404)');
+    } else if (status === 500) {
+      toast.error('Server error. Please try again.');
     }
+
     return Promise.reject(error);
   }
 );
