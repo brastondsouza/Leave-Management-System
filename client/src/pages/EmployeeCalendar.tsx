@@ -9,7 +9,7 @@ import {
   ChevronRight,
   RefreshCw,
   AlertCircle,
-  UserCheck,
+
 } from 'lucide-react';
 
 const EmployeeCalendar: React.FC = () => {
@@ -243,10 +243,10 @@ const EmployeeCalendar: React.FC = () => {
                       {visibleLeaves.map((leave, lIdx) => (
                         <div
                           key={lIdx}
-                          title={`${leave.employeeName || 'Employee'} out (${leave.leaveType || 'Absence'})`}
+                          title="Absence"
                           className="w-full text-[10px] font-bold px-2 py-1 rounded-md border text-indigo-700 bg-indigo-50/60 border-indigo-150 truncate shrink-0 transform transition-all duration-150 hover:translate-x-0.5 hover:bg-indigo-50"
                         >
-                          {leave.employeeName || 'Absent'}
+                          Absent
                         </div>
                       ))}
                       
