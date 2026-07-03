@@ -37,6 +37,11 @@ export const leaveApi = {
     return response.data.leaves;
   },
 
+  getCalendarLeaves: async () => {
+    const response = await api.get("/leaves/calendar");
+    return response.data.leaves;
+  },
+
   updateRequestStatus: async (
     id: string,
     status: "approved" | "rejected",

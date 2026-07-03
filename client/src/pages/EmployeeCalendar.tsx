@@ -9,6 +9,7 @@ import {
   ChevronRight,
   RefreshCw,
   AlertCircle,
+  UserCheck,
 } from 'lucide-react';
 
 const EmployeeCalendar: React.FC = () => {
@@ -22,71 +23,15 @@ const EmployeeCalendar: React.FC = () => {
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
 
-  // Mock approved leaves fallback for active month
-  const generateMockCompanyLeaves = (y: number, m: number): LeaveRequest[] => {
-    return [
-      {
-        _id: 'mock_c_1',
-        employee: 'Hidden User',
-        leaveType: 'casual',
-        startDate: new Date(y, m, 5).toISOString(),
-        endDate: new Date(y, m, 7).toISOString(),
-        totalDays: 3,
-        reason: 'Confidential',
-        status: 'approved',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        _id: 'mock_c_2',
-        employee: 'Hidden User',
-        leaveType: 'sick',
-        startDate: new Date(y, m, 12).toISOString(),
-        endDate: new Date(y, m, 12).toISOString(),
-        totalDays: 1,
-        reason: 'Medical rest',
-        status: 'approved',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        _id: 'mock_c_3',
-        employee: 'Hidden User',
-        leaveType: 'earned',
-        startDate: new Date(y, m, 18).toISOString(),
-        endDate: new Date(y, m, 21).toISOString(),
-        totalDays: 4,
-        reason: 'Vacation',
-        status: 'approved',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        _id: 'mock_c_4',
-        employee: 'Hidden User',
-        leaveType: 'casual',
-        startDate: new Date(y, m, 26).toISOString(),
-        endDate: new Date(y, m, 26).toISOString(),
-        totalDays: 1,
-        reason: 'Personal',
-        status: 'approved',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-  };
-
   const fetchCalendarData = async () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      // Query the real REST API (returns 403 for non-admins due to roleMiddleware)
-      const companyLeaves = await leaveApi.getAdminRequests({ status: 'approved' });
+      const companyLeaves = await leaveApi.getCalendarLeaves();
       setCompanyApprovedLeaves(companyLeaves || []);
     } catch (error: any) {
-      // Fallback to relative mock absences on expected 403 Forbidden
-      const mockLeaves = generateMockCompanyLeaves(year, month);
-      setCompanyApprovedLeaves(mockLeaves);
+      console.error('Failed to load company leaves', error);
+      setErrorMsg('Failed to fetch scheduled leaves from the database.');
     } finally {
       setIsLoading(false);
     }
@@ -96,25 +41,12 @@ const EmployeeCalendar: React.FC = () => {
     fetchCalendarData();
   }, [year, month]);
 
-  const getDaysInMonth = (y: number, m: number) => {
-    return new Date(y, m + 1, 0).getDate();
-  };
+  const getDaysInMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
+  const getFirstDayOfMonth = (y: number, m: number) => new Date(y, m, 1).getDay();
 
-  const getFirstDayOfMonth = (y: number, m: number) => {
-    return new Date(y, m, 1).getDay();
-  };
-
-  const handlePrevMonth = () => {
-    setCalendarDate(new Date(year, month - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCalendarDate(new Date(year, month + 1, 1));
-  };
-
-  const handleTodayMonth = () => {
-    setCalendarDate(new Date());
-  };
+  const handlePrevMonth = () => setCalendarDate(new Date(year, month - 1, 1));
+  const handleNextMonth = () => setCalendarDate(new Date(year, month + 1, 1));
+  const handleTodayMonth = () => setCalendarDate(new Date());
 
   const generateCalendarDays = () => {
     const totalDays = getDaysInMonth(year, month);
@@ -139,7 +71,7 @@ const EmployeeCalendar: React.FC = () => {
       });
     }
 
-    // Next month padding to complete 42 slots grid
+    // Next month padding to complete standard 42 slots grid
     const remainingSlots = 42 - days.length;
     for (let i = 1; i <= remainingSlots; i++) {
       days.push({
@@ -175,60 +107,74 @@ const EmployeeCalendar: React.FC = () => {
   const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
+    <div className="space-y-6 font-sans antialiased text-slate-800 p-1">
+      {/* Header Container */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Company Leave Calendar</h2>
-          <p className="text-sm font-semibold text-slate-400 mt-0.5">Track team availability timelines across the organization</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 bg-linear-to-r from-slate-900 via-slate-800 to-indigo-950 bg-clip-text">
+            Company Calendar
+          </h2>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Track out-of-office timelines and dynamic team availability at a glance.
+          </p>
         </div>
         <button
           onClick={fetchCalendarData}
-          className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-650 hover:bg-slate-55 transition-colors focus:outline-hidden cursor-pointer"
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-xs transition-all duration-200 hover:bg-slate-50 hover:text-slate-900 active:scale-95 disabled:opacity-50 cursor-pointer"
         >
-          <RefreshCw className="h-4 w-4" />
-          Sync
+          <RefreshCw className={`h-4 w-4 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
+          Sync Data
         </button>
       </div>
 
       {/* Connection Offline Box */}
       {errorMsg && (
-        <div className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50/50 p-4.5 text-rose-700 shadow-2xs">
-          <AlertCircle className="h-5.5 w-5.5 shrink-0 text-rose-600" />
-          <div className="text-sm font-medium">
-            <p className="font-semibold text-rose-800">Connection Failed</p>
-            <p className="mt-1 text-rose-600/90">{errorMsg}</p>
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-rose-900 shadow-xs animate-in fade-in slide-in-from-top-2 duration-300">
+          <AlertCircle className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-bold text-rose-900">Sync Interrupted</p>
+            <p className="mt-0.5 text-rose-700/90 font-medium">{errorMsg}</p>
           </div>
         </div>
       )}
 
-      {/* Calendar Planner Card */}
-      <Card className="border-slate-200 overflow-hidden shadow-2xs">
-        {/* Navigation header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-150 pb-4 mb-4 gap-3">
-          <div className="flex items-center gap-2.5">
-            <CalendarIcon className="h-5.5 w-5.5 text-brand-600" />
-            <h4 className="text-base font-black text-slate-850 tracking-tight">
-              Approved Absence Planner ({monthNames[month]} {year})
-            </h4>
+      {/* Main Calendar Card */}
+      <Card className="border border-slate-200/80 bg-white/70 backdrop-blur-md shadow-lg rounded-2xl overflow-hidden p-6">
+        
+        {/* Navigation & Controls Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5 mb-5 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+              <CalendarIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-900 tracking-tight">
+                {monthNames[month]} {year}
+              </h4>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Approved Organization Absences</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
               onClick={handleTodayMonth}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-650 hover:bg-slate-50 cursor-pointer"
+              className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-98 shadow-xs cursor-pointer"
             >
-              This Month
+              Current Month
             </button>
-            <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden">
+            <div className="flex items-center border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden">
               <button
                 onClick={handlePrevMonth}
-                className="p-1.5 text-slate-500 hover:bg-slate-50 border-r border-slate-200 cursor-pointer"
+                className="p-2 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors border-r border-slate-100 cursor-pointer"
+                aria-label="Previous month"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={handleNextMonth}
-                className="p-1.5 text-slate-500 hover:bg-slate-50 cursor-pointer"
+                className="p-2 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors cursor-pointer"
+                aria-label="Next month"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -236,75 +182,80 @@ const EmployeeCalendar: React.FC = () => {
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-3 pb-3 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4 select-none">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Casual (Green)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-500" /> Sick (Orange)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-blue-500" /> Earned (Blue)
-          </span>
-        </div>
-
+        {/* Loader View */}
         {isLoading ? (
-          <div className="flex justify-center items-center py-24">
-            <Spinner size="md" label="Loading calendar details..." />
+          <div className="flex flex-col justify-center items-center py-32 space-y-3">
+            <Spinner size="md" />
+            <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase animate-pulse">Gathering Schedule...</span>
           </div>
         ) : (
-          <div>
-            {/* Weekday headers */}
-            <div className="grid grid-cols-7 border-b border-slate-100 text-center font-bold text-[10px] uppercase text-slate-400 tracking-wider pb-2">
+          <div className="animate-in fade-in duration-400">
+            {/* Weekday Headers Layout */}
+            <div className="grid grid-cols-7 mb-2 text-center font-bold text-xs uppercase tracking-wider text-slate-400/90 select-none">
               {weekdayNames.map((d) => (
-                <div key={d}>{d}</div>
+                <div key={d} className="py-2">{d}</div>
               ))}
             </div>
 
-            {/* Grid days */}
-            <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 border-b border-slate-100 border-l border-r rounded-b-xl overflow-hidden mt-2">
+            {/* Interactive Grid Calendar Box */}
+            <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-xl overflow-hidden shadow-xs">
               {calendarDays.map((dayObj, idx) => {
                 const dayLeaves = getLeavesForDate(dayObj.date);
-                const hasLeaves = dayLeaves.length > 0;
                 const isToday = new Date().toDateString() === dayObj.date.toDateString();
+                
+                // Show up to 2 leaves visually inside the block, stack remaining
+                const maxVisibleLeaves = 2;
+                const visibleLeaves = dayLeaves.slice(0, maxVisibleLeaves);
+                const extraCount = dayLeaves.length - maxVisibleLeaves;
 
                 return (
                   <div
                     key={idx}
-                    className={`min-h-[60px] p-2 flex flex-col justify-between transition-colors relative ${
+                    className={`min-h-[105px] p-2 flex flex-col justify-between transition-all duration-200 relative group select-none ${
                       dayObj.isCurrentMonth
                         ? isToday
-                          ? 'bg-brand-50/25'
-                          : 'bg-white'
-                        : 'bg-slate-50/50 text-slate-350'
+                          ? 'bg-indigo-50/60 font-semibold'
+                          : 'bg-white hover:bg-slate-50/60'
+                        : 'bg-slate-50/70 text-slate-400'
                     }`}
-                    title={hasLeaves ? 'Employees on Leave' : undefined}
                   >
-                    {/* Day number */}
-                    <span className={`text-xs font-bold flex h-5 w-5 items-center justify-center rounded-full ${
-                      isToday ? 'bg-brand-600 text-white' : 'text-slate-700'
-                    }`}>
-                      {dayObj.date.getDate()}
-                    </span>
+                    {/* Header Row of the Day Block */}
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-xs font-bold flex h-6 w-6 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${
+                          isToday
+                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                            : dayObj.isCurrentMonth ? 'text-slate-700' : 'text-slate-400/70'
+                        }`}
+                      >
+                        {dayObj.date.getDate()}
+                      </span>
+                      
+                      {isToday && (
+                        <span className="text-[9px] font-extrabold uppercase tracking-wide text-indigo-600 bg-indigo-100/80 px-1.5 py-0.5 rounded-md">
+                          Today
+                        </span>
+                      )}
+                    </div>
 
-                    {/* Colored dots */}
-                    {hasLeaves && (
-                      <div className="flex gap-1 mt-1 justify-center">
-                        {Array.from(new Set(dayLeaves.map((l) => l.leaveType))).map((type) => {
-                          let dotColor = 'bg-blue-500';
-                          if (type === 'casual') dotColor = 'bg-emerald-500';
-                          if (type === 'sick') dotColor = 'bg-amber-500';
-                          
-                          return (
-                            <span
-                              key={type}
-                              className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
+                    {/* Content Slot / Leaves List */}
+                    <div className="mt-2 space-y-1 grow flex flex-col justify-end">
+                      {visibleLeaves.map((leave, lIdx) => (
+                        <div
+                          key={lIdx}
+                          title={`${leave.employeeName || 'Employee'} out (${leave.leaveType || 'Absence'})`}
+                          className="w-full text-[10px] font-bold px-2 py-1 rounded-md border text-indigo-700 bg-indigo-50/60 border-indigo-150 truncate shrink-0 transform transition-all duration-150 hover:translate-x-0.5 hover:bg-indigo-50"
+                        >
+                          {leave.employeeName || 'Absent'}
+                        </div>
+                      ))}
+                      
+                      {extraCount > 0 && (
+                        <div className="text-[9px] font-extrabold text-slate-500 pl-1 py-0.5 tracking-tight">
+                          +{extraCount} more down
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}

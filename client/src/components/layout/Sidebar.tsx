@@ -7,9 +7,11 @@ import {
   Users,
   Calendar,
   Settings,
-  Menu,
+  X,
   User,
   Activity,
+  Briefcase,
+  Layers,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,73 +25,59 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const employeeLinks = [
     {
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: <LayoutDashboard className="h-5 w-5" />,
+      category: 'Workspace',
+      items: [
+        { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+        { name: 'Apply Leave', path: '/apply-leave', icon: <Calendar className="h-4 w-4" /> },
+      ]
     },
     {
-      name: 'Apply Leave',
-      path: '/apply-leave',
-      icon: <Calendar className="h-5 w-5" />,
+      category: 'Management',
+      items: [
+        { name: 'Leave History', path: '/leave-history', icon: <FileSpreadsheet className="h-4 w-4" /> },
+        { name: 'Leave Balance', path: '/leave-balance', icon: <Activity className="h-4 w-4" /> },
+        { name: 'Company Calendar', path: '/calendar', icon: <Calendar className="h-4 w-4" /> },
+      ]
     },
     {
-      name: 'Leave History',
-      path: '/leave-history',
-      icon: <FileSpreadsheet className="h-5 w-5" />,
-    },
-    {
-      name: 'Leave Balance',
-      path: '/leave-balance',
-      icon: <Activity className="h-5 w-5" />,
-    },
-    {
-      name: 'Company Calendar',
-      path: '/calendar',
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      name: 'Profile',
-      path: '/profile',
-      icon: <User className="h-5 w-5" />,
-    },
+      category: 'Personal',
+      items: [
+        { name: 'Profile', path: '/profile', icon: <User className="h-4 w-4" /> },
+      ]
+    }
   ];
 
   const adminLinks = [
     {
-      name: 'Dashboard',
-      path: '/admin/dashboard',
-      icon: <LayoutDashboard className="h-5 w-5" />,
+      category: 'Overview',
+      items: [
+        { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+      ]
     },
     {
-      name: 'Pending Requests',
-      path: '/admin/requests',
-      icon: <FileSpreadsheet className="h-5 w-5" />,
+      category: 'Operations',
+      items: [
+        { name: 'Pending Requests', path: '/admin/requests', icon: <FileSpreadsheet className="h-4 w-4" /> },
+        { name: 'Employees', path: '/admin/employees', icon: <Users className="h-4 w-4" /> },
+        { name: 'Calendar', path: '/admin/calendar', icon: <Calendar className="h-4 w-4" /> },
+      ]
     },
     {
-      name: 'Employees',
-      path: '/admin/employees',
-      icon: <Users className="h-5 w-5" />,
-    },
-    {
-      name: 'Calendar',
-      path: '/admin/calendar',
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      name: 'Settings',
-      path: '/admin/settings',
-      icon: <Settings className="h-5 w-5" />,
-    },
+      category: 'Configuration',
+      items: [
+        { name: 'Settings', path: '/admin/settings', icon: <Settings className="h-4 w-4" /> },
+      ]
+    }
   ];
 
-  const links = user?.role === 'admin' ? adminLinks : employeeLinks;
+  const groupedLinks = user?.role === 'admin' ? adminLinks : employeeLinks;
 
   return (
     <>
       {/* Mobile Drawer Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs lg:hidden transition-opacity duration-300"
           onClick={onClose}
         />
       )}
@@ -101,75 +89,93 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         }`}
       >
         {/* Brand Logo Header */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-  {/* Branding & Logo Group */}
-  <div className="flex items-center gap-3">
-    {/* Logo Icon Box */}
-    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-black select-none shadow-lg shadow-indigo-600/20 text-sm tracking-wider">
-      LF
-    </div>
-    {/* App Title Text */}
-    <span className="text-xl font-extrabold text-slate-900 tracking-tight font-sans">
-      LeaveFlow <span className="text-indigo-600 font-semibold text-lg">HRMS</span>
-    </span>
-  </div>
+        <div className="flex h-16 items-center justify-between px-5 border-b border-slate-150 bg-white">
+          <div className="flex items-center gap-2.5 select-none">
+            {/* Unified Brand Theme Logo */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white font-black shadow-lg shadow-brand-600/20 text-xs tracking-wider">
+              LF
+            </div>
+            <span className="text-lg font-bold text-slate-900 tracking-tight font-sans">
+              LeaveFlow<span className="text-brand-600 font-semibold">HR</span>
+            </span>
+          </div>
 
-  {/* Mobile Menu Button */}
-  <button
-    onClick={onClose}
-    className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors duration-200 lg:hidden focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-    aria-label="Close menu"
-  >
-    <Menu className="h-5 w-5" />
-  </button>
-</div>
+          {/* Close Menu Button (Mobile view alternative) */}
+          <button
+            onClick={onClose}
+            className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-all lg:hidden focus:outline-hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 space-y-2 px-4 py-6 overflow-y-auto">
-          {links.map((link) => {
-            const isActive = location.pathname === link.path;
-            return (
-              <NavLink
-                key={link.path}
-                to={link.path}
-                onClick={onClose}
-                className={`relative flex items-center gap-3.5 rounded-xl px-4.5 py-3 text-sm font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-brand-50 text-brand-700 shadow-2xs shadow-brand-500/5'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                {/* Active marker left vertical line */}
-                {isActive && (
-                  <span className="absolute left-0 top-3 bottom-3 w-1 rounded-r-lg bg-brand-600" />
-                )}
-                
-                {/* Icon wrapper to keep vertical alignment consistent */}
-                <span className={`transition-colors duration-200 ${isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                  {link.icon}
-                </span>
-                
-                <span className="tracking-tight">{link.name}</span>
-              </NavLink>
-            );
-          })}
+        {/* Navigation Content Matrix */}
+        <nav className="flex-1 space-y-6 px-3.5 py-6 overflow-y-auto custom-scrollbar">
+          {groupedLinks.map((group) => (
+            <div key={group.category} className="space-y-1">
+              {/* Category Subheadings */}
+              <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400/80">
+                {group.category}
+              </p>
+              
+              {/* Navigation Items */}
+              <div className="space-y-0.5">
+                {group.items.map((link) => {
+                  const isActive = location.pathname === link.path;
+                  return (
+                    <NavLink
+                      key={link.path}
+                      to={link.path}
+                      onClick={onClose}
+                      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-150 ${
+                        isActive
+                          ? 'bg-brand-50 text-brand-700 font-bold'
+                          : 'text-slate-500 hover:bg-slate-50/70 hover:text-slate-900'
+                      }`}
+                    >
+                      {/* Consistent Icon Container and Colors */}
+                      <span className={`transition-colors duration-150 ${
+                        isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-500'
+                      }`}>
+                        {link.icon}
+                      </span>
+                      
+                      <span className="tracking-tight">{link.name}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        {/* Workspace Footer details */}
+        {/* Premium Contextual Footer Node */}
         {user && (
-          <div className="border-t border-slate-150 p-4 bg-slate-50/50">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs">
-              <div className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          <div className="border-t border-slate-150 p-3.5 bg-slate-50/40">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white p-3 shadow-xs">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 border border-slate-200/50">
+                {user.role === 'admin' ? (
+                  <Layers className="h-4 w-4 text-brand-600" />
+                ) : (
+                  <Briefcase className="h-4 w-4 text-slate-500" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  {user.designation || 'Administrator'}
+                <p className="truncate text-[11px] font-bold text-slate-800 uppercase tracking-wide leading-tight">
+                  {user.role === 'admin' ? 'HR Administrator' : (user.designation || 'Staff Associate')}
                 </p>
-                <p className="truncate text-[10px] text-slate-400 font-semibold mt-0.5">
-                  HRMS REST Mode
-                </p>
+                
+                {/* Live System Synchronization Tag */}
+                <div className="mt-1 flex items-center gap-1.5">
+                  <div className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-medium tracking-tight">
+                    Secured Node Active
+                  </span>
+                </div>
               </div>
             </div>
           </div>

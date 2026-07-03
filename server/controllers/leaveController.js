@@ -273,3 +273,33 @@ export const getAdminLeaveStats = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to fetch leave stats", error: error.message });
   }
 };
+
+export const getCalendarLeaves = async (req, res) => {
+  try {
+    const role = req.user?.role;
+    const { status } = req.query;
+
+    if (role === "admin") {
+      if (status && !VALID_STATUSES.includes(status)) {
+        return res.status(400).json({ success: false, message: "Invalid status filter" });
+      }
+      const query = status ? { status } : {};
+      const leaves = await populateEmployee(Leave.find(query).sort({ createdAt: -1 }));
+      return res.status(200).json({ success: true, count: leaves.length, leaves });
+    } else {
+      // Employee role: only return approved leave dates
+      // Regardless of query, employees only see approved leaves
+      const leaves = await Leave.find({ status: "approved" }).sort({ createdAt: -1 });
+
+      const sanitizedLeaves = leaves.map((leave) => ({
+        _id: leave._id,
+        startDate: leave.startDate,
+        endDate: leave.endDate,
+      }));
+
+      return res.status(200).json({ success: true, count: sanitizedLeaves.length, leaves: sanitizedLeaves });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch calendar leaves", error: error.message });
+  }
+};
