@@ -16,4 +16,20 @@ export const authApi = {
 
     return response.data.user;
   },
+
+  getUsers: async (): Promise<User[]> => {
+    const response = await api.get("/auth/users");
+
+    return response.data.users;
+  },
+
+  updateUser: async (id: string, data: any): Promise<User> => {
+    const response = await api.put(`/auth/users/${id}`, data);
+    return response.data.user;
+  },
+
+  deleteUser: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/auth/users/${id}`);
+    return response.data;
+  },
 };

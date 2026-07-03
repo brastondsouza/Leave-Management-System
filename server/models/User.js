@@ -51,6 +51,11 @@ const userSchema = new mongoose.Schema(
       default: "General",
     },
 
+    designation: {
+      type: String,
+      default: "Employee",
+    },
+
     leaveBalance: {
       type: leaveBalanceSchema,
       default: () => ({}),

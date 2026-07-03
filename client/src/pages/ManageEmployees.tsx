@@ -15,55 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-// Initial Mock Employee Directory to populate UI out of the box
-const INITIAL_EMPLOYEES: User[] = [
-  {
-    _id: 'emp_1',
-    name: 'Alice Johnson',
-    email: 'alice.j@leaveflow.com',
-    role: 'admin',
-    department: 'HR',
-    designation: 'HR Manager',
-    leaveBalance: { casual: 10, sick: 8, earned: 15 },
-  },
-  {
-    _id: 'emp_2',
-    name: 'Bob Smith',
-    email: 'bob.s@leaveflow.com',
-    role: 'employee',
-    department: 'IT',
-    designation: 'Senior Developer',
-    leaveBalance: { casual: 7, sick: 5, earned: 12 },
-  },
-  {
-    _id: 'emp_3',
-    name: 'Charlie Brown',
-    email: 'charlie.b@leaveflow.com',
-    role: 'employee',
-    department: 'Finance',
-    designation: 'Financial Analyst',
-    leaveBalance: { casual: 9, sick: 8, earned: 15 },
-  },
-  {
-    _id: 'emp_4',
-    name: 'Diana Prince',
-    email: 'diana.p@leaveflow.com',
-    role: 'employee',
-    department: 'Marketing',
-    designation: 'Content Lead',
-    leaveBalance: { casual: 10, sick: 6, earned: 14 },
-  },
-  {
-    _id: 'emp_5',
-    name: 'Evan Wright',
-    email: 'evan.w@leaveflow.com',
-    role: 'employee',
-    department: 'Sales',
-    designation: 'Account Manager',
-    leaveBalance: { casual: 6, sick: 8, earned: 10 },
-  },
-];
+import { authApi } from '../api/auth';
 
 // Add Employee Zod Schema
 const addEmployeeSchema = zod.object({
@@ -96,10 +48,8 @@ const ManageEmployees: React.FC = () => {
   const navigate = useNavigate();
   
   // State variables
-  const [employees, setEmployees] = useState<User[]>(() => {
-    const saved = localStorage.getItem('leaveflow_directory');
-    return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
-  });
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [deptFilter, setDeptFilter] = useState<string>('');
@@ -111,10 +61,23 @@ const ManageEmployees: React.FC = () => {
   
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Persist local state edits/deletes to localStorage for demo persistence
+  // Fetch employees from database
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    try {
+      const data = await authApi.getUsers();
+      setEmployees(data || []);
+    } catch (error: any) {
+      console.error('Failed to fetch employees', error);
+      toast.error('Failed to load employees.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('leaveflow_directory', JSON.stringify(employees));
-  }, [employees]);
+    fetchEmployees();
+  }, []);
 
   // Check URL query parameters on load to trigger Add modal
   useEffect(() => {
@@ -164,93 +127,59 @@ const ManageEmployees: React.FC = () => {
   const onAddSubmit = async (data: AddEmployeeFormValues) => {
     setIsSubmitting(true);
     try {
-      // Call real POST /api/auth/register endpoint to save in backend DB
-      // In the authApi object, we have login and getProfile. We can make a direct call using authApi register or custom post if authApi doesn't expose register:
-      // Wait, register endpoint is POST /api/auth/register. Let's make an Axios call using our api client or register directly.
-      // Since our api is exported in authApi, wait, let's import the axios client to make the POST request directly:
-      // Wait! Let's check how we can register a user. In authRoutes.js, the router mounts POST /api/auth/register.
-      // So we can call: `await api.post('/auth/register', data)`!
-      // Let's import the api instance.
       const api = (await import('../api/axios')).default;
-      const apiResponse = await api.post('/auth/register', data);
+      await api.post('/auth/register', data);
       
-      const registeredUser = apiResponse.data?.user;
-      
-      // If backend successful, add to our local directory
-      const newUser: User = {
-        _id: registeredUser?._id || `emp_${Date.now()}`,
-        name: data.name,
-        email: data.email.toLowerCase().trim(),
-        role: data.role,
-        department: data.department,
-        designation: data.designation,
-        leaveBalance: { casual: 10, sick: 8, earned: 15 },
-      };
-
-      setEmployees([newUser, ...employees]);
       toast.success(`Employee ${data.name} has been added successfully!`);
       setActiveModal(null);
       addForm.reset();
+      await fetchEmployees();
     } catch (error: any) {
       console.error('Registration failed', error);
-      const errMsg = error.response?.data?.message || 'Failed to add employee to backend database. Synced locally instead.';
-      
-      // Fallback: Even if server is offline or fails, add locally to make the UI look functional as per the requirement
-      const newUser: User = {
-        _id: `emp_${Date.now()}`,
-        name: data.name,
-        email: data.email.toLowerCase().trim(),
-        role: data.role,
-        department: data.department,
-        designation: data.designation,
-        leaveBalance: { casual: 10, sick: 8, earned: 15 },
-      };
-      setEmployees([newUser, ...employees]);
-      toast.success(`Employee registered locally. (${errMsg})`);
-      setActiveModal(null);
-      addForm.reset();
+      const errMsg = error.response?.data?.message || 'Failed to add employee.';
+      toast.error(errMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Submit Edit Employee Form (simulated/mock placeholder as requested)
-  const onEditSubmit = (data: EditEmployeeFormValues) => {
+  // Submit Edit Employee Form (triggers real API call)
+  const onEditSubmit = async (data: EditEmployeeFormValues) => {
     if (!selectedUser) return;
-    
-    // Update local state list
-    setEmployees(
-      employees.map((emp) =>
-        emp._id === selectedUser._id
-          ? {
-              ...emp,
-              name: data.name,
-              email: data.email.toLowerCase().trim(),
-              role: data.role,
-              department: data.department,
-              designation: data.designation,
-              leaveBalance: {
-                casual: data.casual,
-                sick: data.sick,
-                earned: data.earned,
-              },
-            }
-          : emp
-      )
-    );
-    toast.success(`Profile for ${data.name} updated successfully! [Placeholder Sync]`);
-    setActiveModal(null);
-    setSelectedUser(null);
+    setIsSubmitting(true);
+    try {
+      await authApi.updateUser(selectedUser._id, data);
+      toast.success(`Profile for ${data.name} updated successfully!`);
+      setActiveModal(null);
+      setSelectedUser(null);
+      await fetchEmployees();
+    } catch (error: any) {
+      console.error('Update failed', error);
+      const errMsg = error.response?.data?.message || 'Failed to update employee details.';
+      toast.error(errMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
 
-  // Delete Employee Submit (simulated/mock placeholder)
-  const handleDeleteEmployee = () => {
+  // Delete Employee Submit (triggers real API call)
+  const handleDeleteEmployee = async () => {
     if (!selectedUser) return;
-    setEmployees(employees.filter((emp) => emp._id !== selectedUser._id));
-    toast.success(`Employee account for ${selectedUser.name} has been deleted. [Placeholder Sync]`);
-    setActiveModal(null);
-    setSelectedUser(null);
+    setIsSubmitting(true);
+    try {
+      await authApi.deleteUser(selectedUser._id);
+      toast.success(`Employee account for ${selectedUser.name} has been deleted.`);
+      setActiveModal(null);
+      setSelectedUser(null);
+      await fetchEmployees();
+    } catch (error: any) {
+      console.error('Delete failed', error);
+      const errMsg = error.response?.data?.message || 'Failed to delete employee account.';
+      toast.error(errMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Filter Logic
@@ -365,62 +294,72 @@ const ManageEmployees: React.FC = () => {
       <Table
         headers={['Name / Details', 'Email', 'Role', 'Department', 'Designation', 'Actions']}
         isLoading={false}
-        isEmpty={filteredEmployees.length === 0}
-        emptyTitle="No Employees Found"
+        isEmpty={!isLoading && filteredEmployees.length === 0}
+        emptyTitle="No employees found."
         emptyDescription="There are no directory profiles matching the current filter options."
       >
-        {filteredEmployees.map((emp) => (
-          <tr key={emp._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/40 transition-colors">
-            <td className="px-6 py-4.5">
-              <div
-                className="flex items-center gap-3 cursor-pointer"
-                onClick={() => {
-                  setSelectedUser(emp);
-                  setActiveModal('profile');
-                }}
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-bold select-none border border-slate-200">
-                  {emp.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-bold text-slate-800 hover:text-brand-650 transition-colors">{emp.name}</p>
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase">{emp.designation}</p>
-                </div>
-              </div>
-            </td>
-            <td className="px-6 py-4.5 text-slate-550 text-xs font-semibold">{emp.email}</td>
-            <td className="px-6 py-4.5">
-              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${
-                emp.role === 'admin' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-slate-50 border-slate-150 text-slate-500'
-              }`}>
-                {emp.role}
-              </span>
-            </td>
-            <td className="px-6 py-4.5 text-slate-650 text-sm font-semibold">{emp.department}</td>
-            <td className="px-6 py-4.5 text-slate-500 text-xs font-semibold">{emp.designation}</td>
-            <td className="px-6 py-4.5">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleOpenEditModal(emp)}
-                  className="rounded-lg p-1.5 text-slate-450 hover:bg-slate-50 hover:text-slate-700 border border-transparent hover:border-slate-200 transition-all cursor-pointer"
-                  title="Edit profile information"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedUser(emp);
-                    setActiveModal('delete');
-                  }}
-                  className="rounded-lg p-1.5 text-slate-450 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-100 transition-all cursor-pointer"
-                  title="Delete account profile"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+        {isLoading ? (
+          <tr>
+            <td colSpan={6} className="px-6 py-12">
+              <div className="flex justify-center items-center">
+                <Spinner size="lg" label="Loading employees..." />
               </div>
             </td>
           </tr>
-        ))}
+        ) : (
+          filteredEmployees.map((emp) => (
+            <tr key={emp._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/40 transition-colors">
+              <td className="px-6 py-4.5">
+                <div
+                  className="flex items-center gap-3 cursor-pointer"
+                  onClick={() => {
+                    setSelectedUser(emp);
+                    setActiveModal('profile');
+                  }}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-bold select-none border border-slate-200">
+                    {emp.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 hover:text-brand-650 transition-colors">{emp.name}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase">{emp.designation}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4.5 text-slate-550 text-xs font-semibold">{emp.email}</td>
+              <td className="px-6 py-4.5">
+                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${
+                  emp.role === 'admin' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-slate-50 border-slate-150 text-slate-500'
+                }`}>
+                  {emp.role}
+                </span>
+              </td>
+              <td className="px-6 py-4.5 text-slate-650 text-sm font-semibold">{emp.department}</td>
+              <td className="px-6 py-4.5 text-slate-500 text-xs font-semibold">{emp.designation}</td>
+              <td className="px-6 py-4.5">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenEditModal(emp)}
+                    className="rounded-lg p-1.5 text-slate-450 hover:bg-slate-50 hover:text-slate-700 border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                    title="Edit profile information"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedUser(emp);
+                      setActiveModal('delete');
+                    }}
+                    className="rounded-lg p-1.5 text-slate-450 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-100 transition-all cursor-pointer"
+                    title="Delete account profile"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))
+        )}
       </Table>
 
       {/* 1. Modal: View Profile */}
@@ -695,9 +634,10 @@ const ManageEmployees: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-brand-600 px-5 py-2 text-xs font-bold text-white hover:bg-brand-700"
+              disabled={isSubmitting}
+              className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2 text-xs font-bold text-white hover:bg-brand-700 disabled:opacity-75"
             >
-              Save Changes
+              {isSubmitting ? <Spinner size="sm" color="white" /> : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -727,9 +667,10 @@ const ManageEmployees: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDeleteEmployee}
-                className="rounded-xl bg-rose-600 px-5 py-2 text-xs font-bold text-white hover:bg-rose-700"
+                disabled={isSubmitting}
+                className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-75"
               >
-                Confirm Delete
+                {isSubmitting ? <Spinner size="sm" color="white" /> : 'Confirm Delete'}
               </button>
             </div>
           </div>
